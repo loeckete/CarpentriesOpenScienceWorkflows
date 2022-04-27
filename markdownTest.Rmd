@@ -1,0 +1,97 @@
+---
+title: "markdownTest"
+output: github_document
+---
+
+# Script for manuscript organization  
+
+This example was developed for a carpentries workshop  
+
+1. Prepare an R environment  
+
+2. Download and save USGS data
+
+3. Tidy data  
+
+4. Report  
+
+## 1. prepare the R environment  
+
+load libraries 
+
+```{r setup}
+knitr::opts_chunk$set(echo=T)
+library(dataRetrieval)
+library(dplyr)
+library(zoo)
+library(lubridate)
+library(ggplot2)
+```
+
+
+## 2. download data  
+use `readNWISdv` function from the dataRetrieval package  to download KS river data
+```{r download data}
+usgs_id <- "07141220"
+
+data_raw <- readNWISdv(siteNumbers = usgs_id,
+                       parameterCd = "00065",
+                       startDate = "2018-10-01",
+                       endDate = "2021-09-30")
+#inspect data  
+summary(data_raw)
+# save the data
+write.csv(data_raw, "data/exampleStreamGaugeData.csv")
+```
+
+## Tidy data  
+
+in this section we will perform some basic 
+
+```{r clean data}
+# create data frame with better colnames
+data_tidy <- data_raw %>% 
+  rename(stage_ft = X_00065_00003,
+         stage_QAcode = X_00065_00003_cd) %>% 
+  select(-agency_cd, -site_no)
+
+# look at dataframe  
+head(data_tidy)
+
+# first step is to plot data
+
+ggplot(data=data_tidy, aes(x=Date, y=stage_ft))+
+  geom_line()
+
+# deal with missing data by compare to possible days
+first_date <- min(data_tidy$Date)
+last_date <- max(data_tidy$Date)
+
+all_dates <- seq(first_date, last_date, by = "day")
+length(all_dates) == length(data_tidy)
+
+missing_dates <- all_dates[!(all_dates %in% data_tidy$Date)]
+
+# add missing dates
+
+new_dates <- data.frame(Date = missing_dates, state_ft = NA, stage_QAcode = "Gapfill")
+data_clean <- bind_rows(data_tidy, new_dates) %>% 
+  arrange(Date)
+
+summary(data_clean)
+
+# fill in those gaps 
+
+data_clean$stage_ft <- na.approx(data_clean$stage_ft)
+
+summary(data_clean)
+
+ggplot(data=data_tidy, aes(x=Date, y=stage_ft, color=stage_QAcode))+
+  geom_point()
+```
+
+
+## 4. Write up some summary stats  
+
+We analyzed `r usgs_id`.  The max stage was `r max(data_clean$stage_ft)`.
+
