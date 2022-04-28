@@ -86,12 +86,11 @@ data_clean$stage_ft <- na.approx(data_clean$stage_ft)
 
 summary(data_clean)
 
-ggplot(data=data_tidy, aes(x=Date, y=stage_ft, color=stage_QAcode))+
-  geom_point()
+# need to fix gapfill and pass QA code
 ```
 
 
 ## 4. Write up some summary stats  
 
-We analyzed `r usgs_id`.  The max stage was `r max(data_clean$stage_ft)`.
+We analyzed `r usgs_id`.  The max stage was `r max(data_clean$stage_ft)` feet.
 
